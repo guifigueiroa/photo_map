@@ -4,9 +4,8 @@ class Place
   def initialize(params)
     @id = params[:_id].to_s
     
-    @address_components = []
-    params[:address_components].each do |component|
-      @address_components << AddressComponent.new(component)
+    unless params[:address_components].nil?
+      @address_components = params[:address_components].map { |component| AddressComponent.new(component) }
     end
     
     @formatted_address = params[:formatted_address]
@@ -50,11 +49,7 @@ class Place
   end
   
   def self.to_places(collection)
-    places = []
-    collection.each do |place| 
-      places << Place.new(place)
-    end
-    places
+    collection.map { |place| Place.new(place) }
   end
   
   def self.get_address_components(sort=nil, offset=nil, limit=nil)
@@ -78,6 +73,27 @@ class Place
       { :$match => { "address_components.types" => "country", "address_components.short_name" => country_code } },
       { :$project => { :_id => 1} }
       ]).map {|doc| doc[:_id].to_s}
+  end
+  
+  def self.create_indexes 
+    collection.indexes.create_one({ "geometry.geolocation" => "2dsphere" })
+  end
+  
+  def self.remove_indexes
+    Place.collection.indexes.drop_all
+  end
+  
+  def self.near(point, max_meters=nil)
+    collection.find( "geometry.geolocation" =>
+        { :$near => {
+          :$geometry => point.to_hash,
+          :$maxDistance => max_meters}
+        }
+     )
+  end
+  
+  def near(max_meters=nil)
+    Place.to_places(self.class.near(@location, max_meters))
   end
   
   def destroy
