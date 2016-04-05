@@ -99,4 +99,10 @@ class Place
   def destroy
     self.class.collection.find(_id: BSON::ObjectId(@id)).delete_one
   end
+  
+  def photos(offset=0, limit=nil)
+    result = Photo.find_photos_for_place(@id).skip(offset)
+    result = result.limit(limit) unless limit.nil?
+    result.map {|doc| Photo.new(doc)}
+  end
 end
