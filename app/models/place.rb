@@ -1,4 +1,5 @@
 class Place
+  include ActiveModel::Model
   attr_accessor :id, :formatted_address, :location, :address_components
   
   def initialize(params)
@@ -104,5 +105,9 @@ class Place
     result = Photo.find_photos_for_place(@id).skip(offset)
     result = result.limit(limit) unless limit.nil?
     result.map {|doc| Photo.new(doc)}
+  end
+  
+  def persisted?
+    !@id.nil?
   end
 end
